@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.ksi.g1controlpanel.ui.theme.G1ControlPanelTheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
@@ -33,8 +34,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // !!!!! URL do streamu !!!!!
-                    val videoStreamUrl = "udp://@:1234"
+                    val videoStreamUrl = "udp://@:6666"
 
                     ControlScreen(robotApi, videoStreamUrl)
                 }
@@ -47,6 +47,7 @@ class MainActivity : ComponentActivity() {
 fun ControlScreen(api: RobotApiService, videoUrl: String) {
     var statusText by remember { mutableStateOf("Status: Ready") }
     val scope = rememberCoroutineScope()
+    var batteryLevel by remember { mutableStateOf("...") }
 
     Column(
         modifier = Modifier
@@ -59,7 +60,7 @@ fun ControlScreen(api: RobotApiService, videoUrl: String) {
             videoUrl = videoUrl,
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(16 / 9f) // 16:9
+                .aspectRatio(16 / 9f)
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -88,28 +89,36 @@ fun ControlScreen(api: RobotApiService, videoUrl: String) {
             Text("Run Custom Program 1", style = MaterialTheme.typography.titleMedium)
         }
 
+        Button(
+            onClick = {
+                scope.launch {
+                    try {
+                        statusText = "Getting status..."
+                        val response = api.getRobotStatus()
+
+                        batteryLevel = "${response.battery_percent}%"
+                        statusText = "Status: Updated (Charging: ${response.is_charging})"
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        val errorType = e.javaClass.simpleName
+                        val errorMessage = e.message ?: "No details"
+                        statusText = "Status: FAILED - $errorType: $errorMessage"
+                        batteryLevel = "N/A"
+                    }
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp)
+        ) {
+            Text("Get Battery Status", style = MaterialTheme.typography.titleMedium)
+        }
+
         Spacer(modifier = Modifier.height(16.dp))
         Text(text = statusText, style = MaterialTheme.typography.bodyMedium)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = "Battery: $batteryLevel", style = MaterialTheme.typography.bodyMedium)
     }
-    /*
-    Nie wiem czy to nam potrzebne ale mogloby sie przydac bo czemu nie
-    Przykladowy kod ze statusu robota:
-
-    var batteryLevel by remember { mutableStateOf("...") }
-    LaunchedEffect(key1 = true) {
-        while (true) {
-            try {
-                val response = api.getRobotStatus()
-                batteryLevel = "${response.battery_percent}%"
-            } catch (e: Exception) {
-                batteryLevel = "N/A"
-            }
-        delay(5000)
-        }
-      }
-
-      Text(text = "Battery: $batteryLevel")
-    */
 }
 
 @Composable

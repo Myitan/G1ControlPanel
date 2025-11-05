@@ -1,9 +1,10 @@
 package com.ksi.g1controlpanel
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
+import kotlinx.serialization.Serializable
 import retrofit2.Retrofit
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -20,6 +21,15 @@ data class ExecuteRequest(
 data class RobotResponse(
     val status: String,
     val message: String
+)
+
+@Serializable
+data class RobotStatusResponse(
+    val battery_percent: Int,
+    val is_charging: Boolean,
+    val current_program: String,
+    @SerialName("cos tam cos tam")
+    val cos_tam_cos_tam: String
 )
 
 interface RobotApiService {
@@ -41,7 +51,7 @@ interface RobotApiService {
         "message": "Program run_demo_1 started"
       }
     */
-    @POST("api/robot/execute")
+    @POST("/robot/execute")
     suspend fun executeProgram(@Body request: ExecuteRequest): RobotResponse
 
     /*
@@ -56,14 +66,15 @@ interface RobotApiService {
     }
     */
 
-    @GET("api/robot/status")
-    suspend fun getRobotStatus(): RobotResponse
+    @GET("/robot/status")
+    suspend fun getRobotStatus(): RobotStatusResponse
 
 }
 
 object RetrofitClient {
-    private const val BASE_URL = "http://192.168.1.100:8080/"
+    private const val BASE_URL = "http://10.102.23.26:8080/"
     private val json = Json { ignoreUnknownKeys = true }
+
     private val retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
         .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
